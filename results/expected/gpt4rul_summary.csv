@@ -1,0 +1,5 @@
+dataset,test_rmse,test_score,best_epoch,train_time_sec,val_mode,early_stop_metric
+FD001,14.8660,275.55,10,68,all,val_rmse
+FD002,12.8695,575.74,18,206,all,val_rmse
+FD003,13.6859,223.26,8,61,all,val_rmse
+FD004,13.3779,904.91,10,191,all,val_rmse

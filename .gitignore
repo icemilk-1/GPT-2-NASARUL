@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Data
+data/CMaps/
+*.txt
+!requirements.txt
+
+# Models & checkpoints
+*.pt
+*.pth
+*.bin
+.hf_cache/
+outputs/*
+!outputs/.gitkeep
+
+# Training outputs
+results/*
+!results/expected/
+!results/expected/**
+logs/
+lightning_logs/
+wandb/
+
+# Environment
+.env
+.venv/
+.claude/
+env/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# LaTeX build artifacts
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.synctex.gz
+
+# Personal scripts
+update_resume.py
+
+# Reference papers (large binaries — download separately)
+论文/
+
+# Generated figures (root)
+/figures/
