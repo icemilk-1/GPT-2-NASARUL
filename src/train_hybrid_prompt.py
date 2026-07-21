@@ -223,7 +223,7 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device, text_mo
             x, y = batch[0].to(device), batch[1].to(device)
             out = model(x)
         preds.append(out.cpu().numpy())
-        trues.append(y.cpu().numpy() if text_mode else y.numpy())
+        trues.append(y.cpu().numpy())
     pred = clip_predictions(np.concatenate(preds))
     true = np.concatenate(trues)
     return rmse(pred, true), score(pred, true), pred, true
@@ -351,7 +351,7 @@ def train_one(
 
     optimizer = torch.optim.Adam(trainable_params, lr=LEARNING_RATE, weight_decay=WEIGHT_DECAY)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=LR_DECAY_EPOCHS, gamma=LR_DECAY_FACTOR)
-    criterion = nn.MSELoss()
+    criterion = nn.SmoothL1Loss()  # more robust to outliers than MSE
 
     res_dir.mkdir(parents=True, exist_ok=True)
     ckpt_dir = out_dir / "checkpoints"
@@ -396,7 +396,7 @@ def train_one(
                     x, y = batch[0].to(device), batch[1].to(device)
                     out = model(x)
                 val_preds.append(out.cpu().numpy())
-                val_trues.append(y.cpu().numpy() if is_text_mode else y.numpy())
+                val_trues.append(y.cpu().numpy())
         val_preds = np.concatenate(val_preds)
         val_trues = np.concatenate(val_trues)
         val_loss = float(np.mean((val_preds - val_trues) ** 2))
@@ -430,7 +430,7 @@ def train_one(
 
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model_state"])
-    test_rmse_val, test_score_val, _, _ = evaluate(model, test_loader, device, text_mode=is_text_mode)
+    test_rmse_val, test_score_val, _, _ = evaluate(model, test_loader, device)
     elapsed = time.time() - t0
 
     result = {

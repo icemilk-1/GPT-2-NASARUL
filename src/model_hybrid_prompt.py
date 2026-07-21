@@ -146,7 +146,7 @@ class HybridPromptRUL(nn.Module):
         logger.info("GPT-2: %d total layers, using first %d", full_layers, n_layers)
 
         if n_layers < full_layers:
-            self.gpt2.h = self.gpt2.h[:n_layers]
+            self.gpt2.h = self.gpt2.h[-n_layers:]  # last layers: higher-level features
             self.gpt2.config.n_layer = n_layers
 
         if freeze:
