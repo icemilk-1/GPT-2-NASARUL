@@ -54,6 +54,10 @@ paper/*.synctex.gz
 # Personal scripts
 update_resume.py
 
+# Personal interview / project summary notes
+面试_项目总结.md
+保研面试_项目总结.md
+
 # Reference papers (large binaries — download separately)
 论文/
 
