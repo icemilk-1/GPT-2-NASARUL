@@ -13,7 +13,7 @@
 ## 2. 一键复现（Windows）
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/GPT4RUL-Reproduction.git
+git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
 cd GPT4RUL-Reproduction
 
 # 环境安装 + GPT-2 下载 + 数据校验
@@ -29,7 +29,7 @@ cd GPT4RUL-Reproduction
 ## 3. 一键复现（Linux / Mac）
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/GPT4RUL-Reproduction.git
+git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
 cd GPT4RUL-Reproduction
 bash scripts/setup.sh
 bash scripts/reproduce.sh          # 全部四数据集

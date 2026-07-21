@@ -107,7 +107,7 @@ Global: `lr=0.005`, `weight_decay=0.01`, `dropout=0.2`, `StepLR(step=10, γ=0.1)
 **Windows（推荐）**
 
 ```powershell
-git clone https://github.com/YOUR_USERNAME/GPT4RUL-Reproduction.git
+git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
 cd GPT4RUL-Reproduction
 
 # 1) 按 data/README.md 下载 C-MAPSS 到 data/CMaps/
