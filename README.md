@@ -123,8 +123,8 @@ Sensor Features (B, P, 768)
 **Windows**
 
 ```powershell
-git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
-cd GPT4RUL-Reproduction
+git clone https://github.com/icemilk-1/GPT-2-NASARUL.git
+cd GPT-2-NASARUL
 
 # 1) 按 data/README.md 下载 C-MAPSS → data/CMaps/
 # 2) 环境 + GPT-2 + 数据校验
@@ -204,7 +204,7 @@ python src/train_hybrid_prompt.py --dataset-id FD002 --mode hybrid --n-soft-prom
 ## Project Structure
 
 ```
-GPT4RUL-Reproduction/
+GPT-2-NASARUL/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt

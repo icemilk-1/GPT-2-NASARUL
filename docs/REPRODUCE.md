@@ -13,8 +13,8 @@
 ## 2. 一键复现 CE 基线（Windows）
 
 ```powershell
-git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
-cd GPT4RUL-Reproduction
+git clone https://github.com/icemilk-1/GPT-2-NASARUL.git
+cd GPT-2-NASARUL
 
 # 环境安装 + GPT-2 下载 + 数据校验
 .\scripts\setup.ps1
@@ -29,8 +29,8 @@ cd GPT4RUL-Reproduction
 ## 3. 一键复现（Linux / Mac）
 
 ```bash
-git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
-cd GPT4RUL-Reproduction
+git clone https://github.com/icemilk-1/GPT-2-NASARUL.git
+cd GPT-2-NASARUL
 bash scripts/setup.sh
 bash scripts/reproduce.sh          # 全部四数据集
 bash scripts/reproduce.sh FD001    # 单个数据集
@@ -93,7 +93,7 @@ fc results\gpt4rul_summary.csv results\expected\gpt4rul_summary.csv
 
 ## 7. 推送到已有远程仓库
 
-本仓库远程为 `https://github.com/icemilk-1/GPT4RUL-Reproduction.git`。本地有提交后：
+本仓库远程为 `https://github.com/icemilk-1/GPT-2-NASARUL.git`。本地有提交后：
 
 ```powershell
 git status
@@ -103,7 +103,7 @@ git push -u origin main
 首次建库时可使用 GitHub CLI：
 
 ```powershell
-gh repo create GPT4RUL-Reproduction --public --source=. --push
+gh repo create GPT-2-NASARUL --public --source=. --push
 ```
 
 提交前请确认 `data/CMaps/`、`.venv*`、`*.pt` 未被加入（见 `.gitignore`）。

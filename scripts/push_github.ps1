@@ -1,4 +1,4 @@
-# Push to GitHub after creating an empty repo named GPT4RUL-Reproduction
+# Push to GitHub after creating an empty repo named GPT-2-NASARUL
 # Usage:
 #   1. Create empty repo at https://github.com/new  (no README/license)
 #   2. .\scripts\push_github.ps1 -Username YOUR_GITHUB_USERNAME
@@ -6,7 +6,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Username,
-    [string]$RepoName = "GPT4RUL-Reproduction"
+    [string]$RepoName = "GPT-2-NASARUL"
 )
 
 $ErrorActionPreference = "Stop"
