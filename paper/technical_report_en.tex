@@ -26,7 +26,7 @@ This report presents an independent reproduction and systematic improvement of G
 The pipeline combines KMeans-based normalization, correlation--monotonicity feature selection, Patch-Channel Fusion (PCF) blocks, and a frozen GPT-2 backbone, extended with condition embedding and soft prompts.
 Under the reproduced configuration, GPT4RUL+CE achieves test RMSE of 14.87/12.87/13.69/13.38 across four subsets; Hybrid+Soft Prompt reaches \textbf{12.55} on FD002, outperforming the reported paper baseline on that subset.
 Ablation studies show that validating on only the last window per engine degrades test RMSE by 5--11 cycles, and random engine-disjoint splits are essential to avoid leakage.
-Code and one-click reproduction scripts are available at \url{https://github.com/icemilk-1/GPT4RUL-Reproduction}.
+Code and one-click reproduction scripts are available at \url{https://github.com/icemilk-1/GPT-2-NASARUL}.
 
 %==============================================================================
 \section{Method}
@@ -241,6 +241,6 @@ Main outcomes:
 Future work: GPT-2 layer ablation, multi-seed reporting, and fully logged paired ablations.
 
 \vspace{0.3em}
-\noindent\textbf{Repository:} \url{https://github.com/icemilk-1/GPT4RUL-Reproduction}
+\noindent\textbf{Repository:} \url{https://github.com/icemilk-1/GPT-2-NASARUL}
 
 \end{document}

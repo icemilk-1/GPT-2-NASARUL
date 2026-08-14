@@ -27,7 +27,7 @@
 方法采用 KMeans 工况归一化、相关度--单调性特征选择、补丁通道融合（PCF）模块与冻结 GPT-2 骨干网络，并引入工况嵌入（Condition Embedding）与软提示（Soft Prompt）扩展。
 复现配置下，GPT4RUL+CE 在四数据集上的测试 RMSE 为 14.87/12.87/13.69/13.38；Hybrid+Soft Prompt 在 FD002 上达到 \textbf{12.55}，优于原文 11.05 的公开基准对比水平。
 消融实验表明：验证集若仅取每引擎末窗口，测试 RMSE 可恶化 5--11 个周期；随机引擎划分是避免数据泄漏的必要条件。
-代码与一键复现脚本已开源：\url{https://github.com/icemilk-1/GPT4RUL-Reproduction}。
+代码与一键复现脚本已开源：\url{https://github.com/icemilk-1/GPT-2-NASARUL}。
 
 %==============================================================================
 \section{方法}
@@ -242,6 +242,6 @@ Adam 优化器，$lr{=}0.005$，权重衰减 0.01，MSE 损失，Dropout 0.2，S
 后续工作包括 GPT-2 层数消融、多种子统计与更完整的配对消融落盘实验。
 
 \vspace{0.3em}
-\noindent\textbf{开源仓库：} \url{https://github.com/icemilk-1/GPT4RUL-Reproduction}
+\noindent\textbf{开源仓库：} \url{https://github.com/icemilk-1/GPT-2-NASARUL}
 
 \end{document}
