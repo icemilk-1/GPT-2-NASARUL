@@ -1,0 +1,5 @@
+dataset,mode,test_rmse,test_score,best_epoch,n_soft_prompts
+FD001,hybrid,13.7991,259.84,14,4
+FD002,hybrid,12.5464,621.08,13,4
+FD003,hybrid,13.5910,253.76,14,4
+FD004,hybrid,13.7589,1113.37,12,4

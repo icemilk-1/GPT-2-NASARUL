@@ -30,6 +30,7 @@ wandb/
 # Environment
 .env
 .venv/
+.venv_cuda/
 .claude/
 env/
 venv/

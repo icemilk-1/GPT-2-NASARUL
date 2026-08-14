@@ -1,0 +1,5 @@
+dataset,mode,test_rmse,test_score,best_epoch,n_soft_prompts
+FD001,no_gpt2,14.1602,259.67,9,4
+FD002,no_gpt2,13.6144,823.27,7,4
+FD003,no_gpt2,12.9866,215.74,17,4
+FD004,no_gpt2,14.5185,1621.97,6,4

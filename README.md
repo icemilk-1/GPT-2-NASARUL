@@ -7,84 +7,100 @@
 
 Reproduction and improvement of: **Tan et al., "Pre-trained LLM-based Remaining Useful Life Prediction of Aircraft Engines"** (QR2MSE 2025).
 
-> 将 NLP 的"预训练-微调"范式迁移到 PHM 领域：冻结 GPT-2 作为时序特征提取器，用轻量级 PCF Adapter + 可训练软提示桥接传感器数据与 LLM 语义空间。在 NASA C-MAPSS 数据集上复现并**在 FD002 上超越论文结果**。
+> 将 NLP 的「预训练–微调」范式迁移到 PHM：冻结 GPT-2 作时序特征提取器，用轻量 PCF Adapter + 可训练软提示桥接传感器数据与 LLM 语义空间。在 NASA C-MAPSS 上复现 GPT4RUL，并加入 **Condition Embedding（CE）** 与 **Hybrid Soft Prompt（M=4）**；**FD002 Hybrid RMSE 12.55，优于论文公开值 ~12.6**。
 
 ---
 
 ## Results Overview
 
-### 消融实验：GPT-2 到底有没有用？
-
 | Dataset | Conditions | Faults | No-GPT2 (PCF only) | GPT4RUL+CE | **Hybrid+SP (M=4)** | Paper |
-|---------|-----------|--------|-------------------|-----------|-------------------|-------|
+|---------|-----------|--------|-------------------|-----------|---------------------|-------|
 | FD001 | 1 | 1 | 14.16 | 14.87 | **13.80** | ~11.2 |
 | FD002 | 6 | 1 | 13.61 | 12.87 | **12.55** ✅ | ~12.6 |
 | FD003 | 1 | 2 | **12.99** | 13.69 | 13.59 | ~13.2 |
 | FD004 | 6 | 2 | 14.52 | **13.38** | 13.76 | ~12.9 |
 
-> **CE** = Condition Embedding, **SP** = Soft Prompts. Bold = best per dataset. ✅ = surpasses paper.
+> Numbers are test RMSE from committed references under [`results/expected/`](results/expected/). **CE** = Condition Embedding, **SP** = Soft Prompts. Bold = best per dataset. ✅ = surpasses the paper’s reported figure.
+
+![RMSE comparison](paper/figures/fig4_rmse_comparison.png)
 
 ### Key Findings
 
-1. **LLM 的价值取决于任务复杂度**：简单场景（单工况 FD003）纯 PCF 已足够（12.99）；多工况大数据场景 GPT-2 + 软提示才发挥优势（FD002: 12.55）
-2. **软提示是激活 LLM 能力的关键**：不加软提示时 GPT-2 甚至拖后腿（FD001: 14.16 → 14.87 → 13.80），软提示让 LLM 从"噪声源"变成"增强器"
-3. **FD002 首次且唯一超越论文**（12.55 < ~12.6）
-4. **没有万能架构**：4 个数据集的胜出模型各不相同，需要根据任务复杂度自适应选择
+1. **LLM 价值取决于任务复杂度**：单工况 FD003 上纯 PCF 已足够（12.99）；多工况 FD002 上 GPT-2 + 软提示优势更明显（12.55）。
+2. **软提示是激活 LLM 的关键**：FD001 上 No-GPT2 → GPT4RUL+CE → Hybrid 为 14.16 → 14.87 → **13.80**；不加软提示时 GPT-2 可能拖后腿。
+3. **FD002 是本复现中唯一超越论文的配置**（Hybrid 12.55 < ~12.6）。
+4. **没有万能架构**：四个子集的最优模型各不相同，需按工况/故障复杂度选择。
+
+参考指标文件：
+
+- CE 基线：[`results/expected/gpt4rul_summary.csv`](results/expected/gpt4rul_summary.csv)
+- Hybrid M=4：[`results/expected/hybrid_summary_hybrid.csv`](results/expected/hybrid_summary_hybrid.csv)
+- No-GPT2：[`results/expected/hybrid_summary_no_gpt2.csv`](results/expected/hybrid_summary_no_gpt2.csv)
+
+---
+
+## What We Added
+
+相对原论文设定，本仓库明确落地了三项扩展（详见 [docs/reproducibility.md](docs/reproducibility.md)）：
+
+| Extension | 做法 | 作用 |
+|-----------|------|------|
+| **Condition Embedding** | 预处理阶段将 3 维运行参数 MinMax 归一化后拼到传感器特征（约 13–14 传感器 + 3 = **17 维**） | 多工况子集上减少特征歧义；四数据集均有收益 |
+| **Hybrid Soft Prompt (M=4)** | 在映射到 768 维后，将 M 个可学习向量前置送入冻结 GPT-2 | FD001/FD002 最优；FD002 超越论文 |
+| **No-GPT2 ablation** | 仅保留 PCF + 回归头，去掉 GPT-2 | 隔离 LLM 贡献，揭示「何时需要 LLM」 |
 
 ---
 
 ## Architecture
 
 ```
-Sensor Window (B, T, F)
-  ↓ Patching — unfold(K=8, stride per dataset)             → (B, P, K*F)
-  ↓ Linear Proj (K*F → 128) + Learnable Position Enc       → (B, P, 128)
-  ↓ PCF Block × N (MLP-Mixer style, Pre-LN)                → (B, P, 128)
-  │   ├─ Patch-Mixing MLP:  transpose → MLP across P → + residual
-  │   └─ Channel-Mixing MLP: MLP across D → + residual
+Sensor Window (B, T, F)   # F ≈ 17 with Condition Embedding
+  ↓ Patching — unfold(K=8, stride per dataset)             → (B, P, K·F)
+  ↓ Linear Proj (K·F → 128) + Learnable Position Enc       → (B, P, 128)
+  ↓ PCF Block × N (MLP-Mixer style, dual Pre-LN)           → (B, P, 128)
+  │   ├─ Patch-Mixing MLP across P
+  │   └─ Channel-Mixing MLP across D
   ↓ Linear Mapping — LayerNorm → Linear(128 → 768)         → (B, P, 768)
   ↓ Frozen GPT-2 (first 3 layers, inputs_embeds)            → (B, P, 768)
-  ↓ Add & LayerNorm (residual around GPT-2)                 → (B, P, 768)
-  ↓ Flatten & LayerNorm → Linear → RUL                      → (B,)
+  ↓ Add & LayerNorm (residual around GPT-2)
+  ↓ Flatten & LayerNorm → Linear → RUL                     → (B,)
 ```
 
-**Trainable** (~95K params): PCF blocks, input embedding, linear mapping, output head, soft prompts (optional).
-**Frozen**: GPT-2 (3 layers, ~38M params).
+**Trainable**（约 95K）：PCF、输入嵌入、线性映射、输出头、软提示（可选）。  
+**Frozen**：GPT-2 前 3 层（约 38M）。
 
-### Hybrid Prompt Variant (Soft Prompt Injection)
+### Condition Embedding
+
+三个 operating settings（`setting_1/2/3`）经全局 MinMax 归一化后，作为额外通道与筛选后的传感器一起进入 patching，使模型显式看到工况信息（对 FD002/FD004 尤为重要）。
+
+### Hybrid Soft Prompt
 
 ```
 Sensor Features (B, P, 768)
-  ↓ [Soft Prompts (B, M, 768); Sensor Features (B, P, 768)]
-  ↓ → Extended Sequence (B, M+P, 768)
-  ↓ Frozen GPT-2 → strip prompt tokens → keep data tokens
-  ↓ Flatten → Linear(1) → RUL
+  ↓ concat [Soft Prompts (B, M, 768); Sensor Features]
+  ↓ Frozen GPT-2 → 去掉 prompt token，保留数据 token
+  ↓ Flatten → Linear → RUL
 ```
 
-Soft prompts are M learnable 768-dim vectors prepended to the sequence. They act as "task instructions" that guide GPT-2's attention toward degradation-relevant patterns.
+默认 `M=4`。训练入口：`src/train_hybrid_prompt.py`（`--mode hybrid` / `no_gpt2` / `text`）。
 
-### PCF Block (Patch-Channel Fusion)
+### PCF Block
 
-MLP-Mixer inspired, two sequential sub-steps with dual independent Pre-LN:
-1. LayerNorm → Patch-Mixing MLP (mix across time patches) → Residual Add
-2. LayerNorm → Channel-Mixing MLP (mix across feature channels) → Residual Add
-
-Alternative: `--pcf-style parallel` (dual-path parallel MLP + additive fusion).
+双路独立 Pre-LN 的顺序 MLP-Mixer 风格块；也可用 `--pcf-style parallel`。
 
 ---
 
-## Preprocessing Pipeline
+## Preprocessing & Hyperparameters
 
 | Step | Method |
 |------|--------|
-| Clustering | KMeans on 3 operating settings: FD002/004 k=6, FD001/003 k=1 |
-| Normalization | Per-cluster Z-score → Global MinMax [0,1] |
-| Feature selection | Corr(0.5) + Monotonicity(0.5) combined score, keep above-mean sensors |
-| Windowing | Per-dataset sliding window (stride=1) |
-| RUL label | Piecewise linear decay, capped at 125 |
-| Split | Random Engine Split (80/20 by engine ID) — **no data leakage** |
-
-## Per-Dataset Hyperparameters
+| Clustering | KMeans on 3 settings：FD002/004 `k=6`，FD001/003 `k=1` |
+| Normalization | Per-cluster Z-score → Global MinMax `[0,1]` |
+| Feature selection | Corr(0.5) + Monotonicity(0.5)，保留高于均值的传感器 |
+| Condition Embedding | 追加 3 维归一化 settings |
+| Windowing | 按数据集滑动窗口（stride=1） |
+| RUL label | Piecewise linear，cap=125 |
+| Split | Random Engine Split 80/20（按 engine ID，无跨机泄漏） |
 
 | Param | FD001 | FD002 | FD003 | FD004 |
 |-------|-------|-------|-------|-------|
@@ -96,29 +112,29 @@ Alternative: `--pcf-style parallel` (dual-path parallel MLP + additive fusion).
 | Epochs | 100 | 100 | 100 | 100 |
 | Early stop patience | 10 | 10 | 10 | 10 |
 
-Global: `lr=0.005`, `weight_decay=0.01`, `dropout=0.2`, `StepLR(step=10, γ=0.1)`.
+全局：`lr=0.005`，`weight_decay=0.01`，`dropout=0.2`，`StepLR(step=10, γ=0.1)`。
 
 ---
 
-## One-Click Reproduction（一键复现）
+## One-Click Reproduction（GPT4RUL + CE）
 
-> 完整指南见 [docs/REPRODUCE.md](docs/REPRODUCE.md)
+完整指南：[docs/REPRODUCE.md](docs/REPRODUCE.md)
 
-**Windows（推荐）**
+**Windows**
 
 ```powershell
 git clone https://github.com/icemilk-1/GPT4RUL-Reproduction.git
 cd GPT4RUL-Reproduction
 
-# 1) 按 data/README.md 下载 C-MAPSS 到 data/CMaps/
-# 2) 环境安装 + GPT-2 下载 + 数据校验
+# 1) 按 data/README.md 下载 C-MAPSS → data/CMaps/
+# 2) 环境 + GPT-2 + 数据校验
 .\scripts\setup.ps1
 
-# 3) 完整复现 FD001-FD004（CPU 可能需要数小时）
+# 3) 复现 FD001–FD004（CE 基线）
 .\scripts\reproduce.ps1
 
-# 单数据集： .\scripts\reproduce.ps1 -DatasetId FD001
-# 对比结果： fc results\gpt4rul_summary.csv results\expected\gpt4rul_summary.csv
+# 对比参考结果
+fc results\gpt4rul_summary.csv results\expected\gpt4rul_summary.csv
 ```
 
 **Linux / Mac**
@@ -127,109 +143,101 @@ cd GPT4RUL-Reproduction
 bash scripts/setup.sh && bash scripts/reproduce.sh
 ```
 
----
-
-## Quick Start（手动分步）
+### Quick Start（手动）
 
 ```bash
-cd GPT4RUL-Reproduction
-
-# 1) Install dependencies
 pip install -r requirements.txt
 python scripts/download_gpt2.py
-
-# 2) Download C-MAPSS → data/CMaps/ (see data/README.md)
 python scripts/check_data.py
-
-# 3) Preprocess all datasets
 python src/preprocess_gpt4rul.py --all
-
-# 4) Train all datasets
 python src/train_gpt4rul.py --all
-
-# 5) Evaluate
 python scripts/evaluate_all.py
 ```
 
-### CLI Options
+### Hybrid Soft Prompt / No-GPT2
+
+预处理完成后：
+
+```bash
+# Hybrid + Soft Prompt (M=4) — 全部子集
+python src/train_hybrid_prompt.py --all --mode hybrid --n-soft-prompts 4
+
+# No-GPT2 ablation
+python src/train_hybrid_prompt.py --all --mode no_gpt2
+
+# 单数据集示例
+python src/train_hybrid_prompt.py --dataset-id FD002 --mode hybrid --n-soft-prompts 4
+```
+
+跑完后将生成的 `results/hybrid_summary_*.csv` 与 [`results/expected/`](results/expected/) 中对应文件对比。
+
+### 常用 CLI（`train_gpt4rul.py`）
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--dataset-id` | FD001 / FD002 / FD003 / FD004 | required |
-| `--all` | Train all 4 datasets | — |
-| `--tag-suffix` | Experiment tag for outputs | auto |
-| `--pcf-style` | `sequential` or `parallel` | sequential |
-| `--val-mode` | `all` or `last_window` | all |
-| `--early-stop-metric` | `val_loss` or `val_rmse` | val_rmse |
-| `--grad-clip` | Gradient clipping norm (0 = disabled) | 0 |
+| `--dataset-id` | FD001 / FD002 / FD003 / FD004 | required（除非 `--all`） |
+| `--all` | 训练全部 4 个数据集 | — |
+| `--pcf-style` | `sequential` / `parallel` | sequential |
+| `--val-mode` | `all` / `last_window` | all |
+| `--early-stop-metric` | `val_loss` / `val_rmse` | val_rmse |
 | `--device` | `cuda` / `cpu` | auto |
 
 ---
 
-## Reproduction Diagnostics (12+ Experiments)
+## More Figures & Reports
 
-| Investigation | Attempt | Conclusion |
-|--------------|---------|------------|
-| PCF LayerNorm | Single shared LN → Dual Pre-LN | ✅ Aligned with MLP-Mixer |
-| Validation leakage | val_last_idx not filtering train engines | ✅ Fixed |
-| Validation mode | last_window → all windows | ✅ Eliminated spurious val_rmse=0 |
-| Feature Corr calculation | Per-engine avg → Global Pearson | ✅ Improved FD003/004 |
-| FD004 feature count | threshold → top-14 | ✅ FD004: 14.31→13.97 |
-| FD003 forced 14 feat | 13→14 | ❌ Natural optimum is 13 |
-| Feature selection scope | train+test full set | ❌ Introduced noise |
-| Test RUL clipping | Remove clipping | ❌ FD002/004 collapsed |
-| Dropout | 0.2→0.3 | ❌ Degraded |
-| Learning rate | 0.002 / 0.004 | ❌ Both worse than 0.005 |
-| Data split | Temporal split | ❌ Cross-engine leakage |
-| **Condition Embedding** | Add operating params to input | ✅ **Improved all 4 datasets** |
+| Asset | Path |
+|-------|------|
+| Validation trap | [`paper/figures/fig3_validation_trap.png`](paper/figures/fig3_validation_trap.png) |
+| RMSE comparison | [`paper/figures/fig4_rmse_comparison.png`](paper/figures/fig4_rmse_comparison.png) |
+| RUL trends | [`paper/figures/fig5_rul_trends.png`](paper/figures/fig5_rul_trends.png) |
+| Training curves | [`paper/figures/fig6_training_curves.png`](paper/figures/fig6_training_curves.png) |
+| Paper (EN / ZH) | [`paper/revisiting_gpt4rul.pdf`](paper/revisiting_gpt4rul.pdf), [`_zh.pdf`](paper/revisiting_gpt4rul_zh.pdf) |
+| Tech report (EN / ZH) | [`paper/technical_report_en.pdf`](paper/technical_report_en.pdf), [`_zh.pdf`](paper/technical_report_zh.pdf) |
+
+复现诊断与论文对照表见 [docs/reproducibility.md](docs/reproducibility.md)。
+
+![RUL trends](paper/figures/fig5_rul_trends.png)
 
 ---
 
 ## Project Structure
 
 ```
-GPT4RUL/
-├── README.md                       # This file
-├── LICENSE                         # MIT
-├── .gitignore
+GPT4RUL-Reproduction/
+├── README.md
+├── LICENSE
 ├── requirements.txt
-├── config_gpt4rul.py               # Global config (paths, hyperparams, dataset params)
+├── config_gpt4rul.py              # 路径与超参
 ├── data/
-│   └── README.md                   # C-MAPSS download guide
+│   └── README.md                  # C-MAPSS 下载说明（原始数据不入库）
 ├── src/
-│   ├── __init__.py
-│   ├── preprocess_gpt4rul.py       # KMeans → Z-score → MinMax → Feature select → Window
-│   ├── model_gpt4rul.py            # Patching + PCF + Frozen GPT-2
-│   ├── model_hybrid_prompt.py      # Soft prompt variant
-│   ├── model_text_prompt.py        # Text prompt variant
-│   ├── text_encoder.py             # Text encoder for prompt variants
-│   ├── train_gpt4rul.py            # Training loop + early stop + validation
-│   ├── train_hybrid_prompt.py      # Training for hybrid prompt variant
-│   ├── run_ablation_gpt4rul.py     # Ablation experiment manager
-│   ├── evaluate_gpt4rul.py         # Standalone evaluation + visualization
-│   └── utils.py                    # set_seed, save/load checkpoint, plot helpers
-├── scripts/
-│   ├── setup.ps1 / setup.sh        # Environment setup
-│   ├── reproduce.ps1 / reproduce.sh / reproduce.bat  # One-click pipeline
-│   ├── check_data.py               # Verify C-MAPSS files
-│   ├── download_gpt2.py            # Cache GPT-2 locally
-│   ├── evaluate_all.py             # Batch evaluation
-│   └── run_fd001.sh ~ run_fd004.sh # Per-dataset (legacy)
+│   ├── preprocess_gpt4rul.py      # KMeans → 归一化 → 特征选择 → CE → 窗口
+│   ├── model_gpt4rul.py           # Patching + PCF + Frozen GPT-2
+│   ├── model_hybrid_prompt.py     # Soft prompt 变体
+│   ├── model_text_prompt.py       # Text prompt 变体
+│   ├── text_encoder.py
+│   ├── train_gpt4rul.py           # CE 基线训练
+│   ├── train_hybrid_prompt.py     # Hybrid / No-GPT2 / Text
+│   ├── run_ablation_gpt4rul.py
+│   ├── evaluate_gpt4rul.py
+│   └── utils.py
+├── scripts/                       # setup / reproduce / download_gpt2 / evaluate_all
 ├── results/
-│   └── expected/                   # Reference metrics (committed)
-│       └── gpt4rul_summary.csv
-├── logs/                           # Reproduction logs (gitignored)
-├── figures/                        # Visualization outputs (created lazily)
-├── 论文/                           # Reference papers
+│   └── expected/                  # 已提交的参考指标
+│       ├── gpt4rul_summary.csv
+│       ├── hybrid_summary_hybrid.csv
+│       └── hybrid_summary_no_gpt2.csv
+├── paper/
+│   ├── figures/                   # fig3–fig6（png/pdf）
+│   ├── revisiting_gpt4rul*.{tex,pdf}
+│   └── technical_report_*.{tex,pdf}
 └── docs/
-    └── reproducibility.md          # Paper-vs-code comparison table
+    ├── REPRODUCE.md
+    └── reproducibility.md
 ```
 
----
-
-## Reproducibility
-
-See [docs/reproducibility.md](docs/reproducibility.md) for a detailed 37-item comparison table covering preprocessing, model architecture, and training configuration.
+本地训练产物（`outputs/`、`results/*.json`、checkpoint）默认 gitignore，需自行训练生成。
 
 ---
 
